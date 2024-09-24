@@ -1,6 +1,8 @@
 name: Fetch USAJOBS Postings
 
-on: [push]
+on:
+  push: # Trigger the workflow on push events
+  workflow_dispatch: # Allows manual trigger
 
 jobs:
   fetch-usajobs:
@@ -25,25 +27,27 @@ jobs:
     - name: Fetch and save job posting
       run: node fetch.js
 
-    # Step 5: Debug - Check if posting.json exists and is modified
-    - name: Check posting.json
+    # Step 5: Check for changes
+    - name: Check for changes
+      id: git_diff
       run: |
-        if [ -f posting.json ]; then
-          echo "posting.json exists."
-          cat posting.json
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add posting.json
+        if git diff-index --quiet HEAD; then
+          echo "No changes to commit"
+          echo "::set-output name=changes::false"
         else
-          echo "posting.json does not exist."
-          exit 1
+          echo "Changes detected"
+          echo "::set-output name=changes::true"
         fi
 
-    # Step 6: Commit and push the posting.json file
+    # Step 6: Commit and push changes if there are any
     - name: Commit and push changes
+      if: steps.git_diff.outputs.changes == 'true'
       run: |
-        git config --global user.email "github-actions@github.com"
-        git config --global user.name "GitHub Actions"
-        git add -f posting.json  # Force add posting.json to the staging area
-        git commit -m "Update most recent USAJOBS posting" || echo "No changes to commit"
-        git push
+        git commit -m "Update posting.json"
+        git push origin main
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         USAJOBS_API_KEY: ${{ secrets.USAJOBS_API_KEY }}
