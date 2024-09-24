@@ -1,0 +1,39 @@
+name: Fetch USAJOBS Postings
+
+on: [push]
+
+jobs:
+  fetch-usajobs:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the repo
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Step 2: Set up Node.js
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: npm install
+
+    # Step 4: Run fetch script
+    - name: Fetch and save job posting
+      run: node fetch.js
+
+    # Step 5: Commit and push the posting.json file
+    - name: Commit and push changes
+      run: |
+        git config --global user.email "github-actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git add posting.json  # Explicitly add posting.json to the staging area
+        git commit -m "Update most recent USAJOBS posting"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        USAJOBS_API_KEY: ${{ secrets.USAJOBS_API_KEY }}
+        PERSONALGMAIL: ${{ secrets.PERSONALGMAIL }}
